@@ -1,0 +1,152 @@
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RSS Feed Example</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&family=Montserrat:wght@500&display=swap">
+<style>
+  /* Custom styles here */
+  body {
+    margin: 20px;
+  }
+  .rss-item {
+    margin-bottom: 100px;
+    padding: 20px;
+    border-radius: 5px;
+    background-color: #e35443;
+    position: relative;
+    display: flex;
+  }
+  .rss-item img {
+    width: 120px;
+    height: auto;
+    margin-right: 20px;
+    border-radius: 5px;
+  }
+  .rss-item h3 {
+    margin-top: 0;
+    font-weight: bold;
+    font-family: 'Inter', sans-serif;
+    text-transform: uppercase;
+    color: #fff;
+  }
+  .rss-item p {
+    font-family: 'Montserrat', sans-serif;
+    font-weight: 500;
+    color: #fff;
+  }
+  .audio-container {
+    position: relative;
+    margin-top: 20px;
+  }
+  .audio-player {
+    position: absolute;
+    bottom: -50px;
+    left: 0;
+    background-color: rgba(255, 255, 255, 0.5);
+    border-radius: 5px;
+    padding: 5px;
+    width: 100%;
+  }
+  .audio-square {
+    position: absolute;
+    bottom: -60px;
+    left: 0;
+    width: 100%;
+    height: 60px;
+    background-color: rgba(255, 255, 255, 0.5);
+    border-radius: 5px;
+  }
+  .read-more {
+    color: #fff;
+    text-decoration: underline;
+    cursor: pointer;
+  }
+  .show-more {
+    background-color: #e41c21;
+    color: white;
+    padding: 10px 20px;
+    text-align: center;
+    display: block;
+    width: fit-content;
+    margin: 20px auto;
+    cursor: pointer;
+    border: none;
+    border-radius: 5px;
+    font-family: 'Inter', sans-serif; /* Set font to Inter */
+    text-transform: uppercase; /* Make text uppercase */
+    font-weight: bold; /* Make text bold */
+  }
+</style>
+</head>
+<body>
+<div id="rss-feed"></div>
+<button class="show-more" onclick="showMoreEpisodes()">Show More Episodes</button>
+
+<script>
+let items;
+let currentIndex = 0;
+const itemsPerLoad = 3; // Number of items to load each time
+
+// Fetch RSS feed
+function fetchRSSFeed() {
+  fetch('https://feeds.simplecast.com/846kIVme')
+    .then(response => response.text())
+    .then(data => {
+      const parser = new DOMParser();
+      const xml = parser.parseFromString(data, 'application/xml');
+      const podcastImage = xml.querySelector('itunes\\:image, image').getAttribute('href');
+      items = xml.querySelectorAll('item');
+      currentIndex = 0;
+      document.getElementById('rss-feed').innerHTML = ''; // Clear existing items
+      showMoreEpisodes(); // Show initial set of items
+    })
+    .catch(error => console.error('Error fetching RSS feed:', error));
+}
+
+function showMoreEpisodes() {
+  const feedElement = document.getElementById('rss-feed');
+  let feedHTML = feedElement.innerHTML; // Get current feed HTML
+
+  for (let i = currentIndex; i < currentIndex + itemsPerLoad && i < items.length; i++) {
+    const item = items[i];
+    const title = item.querySelector('title').textContent;
+    let description = item.querySelector('itunes\\:summary, summary').textContent;
+    if (description.length > 280) {
+      description = description.substring(0, 280) + '...';
+    }
+    const link = item.querySelector('link').textContent;
+    const audioLink = item.querySelector('enclosure').getAttribute('url');
+    const imageURL = item.querySelector('itunes\\:image, image');
+    const episodeImage = imageURL ? imageURL.getAttribute('href') : podcastImage;
+    feedHTML += `
+      <div class="rss-item">
+        <img src="${episodeImage}" alt="Episode Image">
+        <div>
+          <h3>${title}</h3>
+          <p>${description} <span class="read-more" onclick="window.open('${link}', '_blank')">Read more</span></p>
+          <div class="audio-container">
+            <div class="audio-square"></div>
+            <audio class="audio-player" controls>
+              <source src="${audioLink}" type="audio/mpeg">
+              Your browser does not support the audio element.
+            </audio>
+          </div>
+        </div>
+      </div>
+    `;
+  }
+  
+  feedElement.innerHTML = feedHTML; // Update feed HTML
+  currentIndex += itemsPerLoad; // Update current index
+
+  // Hide the Show More button if there are no more items to load
+  if (currentIndex >= items.length) {
+    document.querySelector('.show-more').style.display = 'none';
+  }
+}
+
+fetchRSSFeed(); // Call fetchRSSFeed initially
+</script>
+</body>
+</html>
