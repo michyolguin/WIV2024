@@ -1,3 +1,4 @@
+<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -5,7 +6,6 @@
 <title>RSS Feed Example</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&family=Montserrat:wght@500&display=swap">
 <style>
-  /* Custom styles here a*/
   body {
     margin: 20px;
   }
@@ -73,9 +73,9 @@
     cursor: pointer;
     border: none;
     border-radius: 5px;
-    font-family: 'Inter', sans-serif; /* Set font to Inter */
-    text-transform: uppercase; /* Make text uppercase */
-    font-weight: bold; /* Make text bold */
+    font-family: 'Inter', sans-serif;
+    text-transform: uppercase;
+    font-weight: bold;
   }
 </style>
 </head>
@@ -86,37 +86,48 @@
 <script>
 let items;
 let currentIndex = 0;
-const itemsPerLoad = 3; // Number of items to load each time
+const itemsPerLoad = 3;
 
-// Fetch RSS feed
 function fetchRSSFeed() {
   fetch('https://feeds.simplecast.com/846kIVme')
-    .then(response => response.text())
+    .then(response => {
+      if (!response.ok) {
+        throw new Error('Network response was not ok ' + response.statusText);
+      }
+      return response.text();
+    })
     .then(data => {
+      console.log('RSS feed data:', data); // Log the fetched data
       const parser = new DOMParser();
       const xml = parser.parseFromString(data, 'application/xml');
-      const podcastImage = xml.querySelector('itunes\\:image, image').getAttribute('href');
+      console.log('Parsed XML:', xml); // Log the parsed XML
+      const podcastImage = xml.querySelector('itunes\\:image, image')?.getAttribute('href');
       items = xml.querySelectorAll('item');
+      console.log('RSS items:', items); // Log the items
       currentIndex = 0;
-      document.getElementById('rss-feed').innerHTML = ''; // Clear existing items
-      showMoreEpisodes(); // Show initial set of items
+      document.getElementById('rss-feed').innerHTML = '';
+      showMoreEpisodes(podcastImage);
     })
     .catch(error => console.error('Error fetching RSS feed:', error));
 }
 
-function showMoreEpisodes() {
+function showMoreEpisodes(podcastImage) {
   const feedElement = document.getElementById('rss-feed');
-  let feedHTML = feedElement.innerHTML; // Get current feed HTML
+  let feedHTML = feedElement.innerHTML;
 
   for (let i = currentIndex; i < currentIndex + itemsPerLoad && i < items.length; i++) {
     const item = items[i];
-    const title = item.querySelector('title').textContent;
-    let description = item.querySelector('itunes\\:summary, summary').textContent;
+    console.log('Processing item:', item); // Log each item being processed
+    const title = item.querySelector('title')?.textContent;
+    let description = item.querySelector('itunes\\:summary, summary')?.textContent || item.querySelector('description')?.textContent;
+    if (!description) {
+      description = 'No description available';
+    }
     if (description.length > 280) {
       description = description.substring(0, 280) + '...';
     }
-    const link = item.querySelector('link').textContent;
-    const audioLink = item.querySelector('enclosure').getAttribute('url');
+    const link = item.querySelector('link')?.textContent;
+    const audioLink = item.querySelector('enclosure')?.getAttribute('url');
     const imageURL = item.querySelector('itunes\\:image, image');
     const episodeImage = imageURL ? imageURL.getAttribute('href') : podcastImage;
     feedHTML += `
@@ -137,16 +148,15 @@ function showMoreEpisodes() {
     `;
   }
   
-  feedElement.innerHTML = feedHTML; // Update feed HTML
-  currentIndex += itemsPerLoad; // Update current index
+  feedElement.innerHTML = feedHTML;
+  currentIndex += itemsPerLoad;
 
-  // Hide the Show More button if there are no more items to load
   if (currentIndex >= items.length) {
     document.querySelector('.show-more').style.display = 'none';
   }
 }
 
-fetchRSSFeed(); // Call fetchRSSFeed initially
+fetchRSSFeed();
 </script>
 </body>
 </html>
